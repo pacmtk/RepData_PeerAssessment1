@@ -1,25 +1,125 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "PA1_template"
+author: "PacMTK"
+date: "September 20, 2015"
+output: html_document
 ---
 
+```{r, echo = TRUE}
+## set working directory
+setwd("/Users/michaelkingen/Desktop/Projects/RepData_PeerAssessment1")
+library("dplyr"); library("lubridate"); library("ggplot2")
 
-## Loading and preprocessing the data
+## read files
+act <- read.csv("activity.csv") ##
+data <- cbind(act, ymd(act$date))
+names(data) <- c("steps", "orig_date", "interval", "date")
+
+# what is the mean number of steps taken each day, ignore missing values
+indDates <- unique(data$date)
+mmValues <- data.frame(NULL)
+for (i in 1:length(indDates)) {
+  b <- filter(data, date == indDates[i])
+  noZero <- filter(b, steps > 0)
+  c <- cbind(sum(b$steps), mean(b$steps), median(noZero$steps, na.rm = TRUE))
+  mmValues <- rbind(mmValues, c)
+}
+
+#remove the NA values
+mmValuesFinal <- na.omit(mmValues)
+names(mmValuesFinal) <- c("Total_Steps", "Mean", "Median")
+```
 
 
 
-## What is mean total number of steps taken per day?
+```{r, echo=TRUE}
+#plot
+png(file = "steps1.png") ## open PNG device, create plot in working directory
+qplot(Total_Steps, data = mmValuesFinal, bindwidth = 53)
+dev.off() ## close PNG file device
+print(mmValuesFinal)
+```
 
 
+```{r, echo = TRUE}
+## What is the average daily activity pattern?
+dataOmit <- na.omit(data)
+unInterval <- unique(dataOmit$interval)
+dInData <- data.frame(NULL)
+for (i in 1:length(unInterval)) {
+  f <- filter(dataOmit, dataOmit$interval == unInterval[i])
+  g <- mean(f$steps); h <- i
+  k <- cbind(g, h)
+  dInData <- rbind(dInData, k)
+}
+names(dInData) <- c("Avg_Steps", "Interval_Number")
+```
+
+```{r, echo = TRUE}
+#plot
+png(file = "steps2.png") ## open PNG device, create plot in working directory
+qplot(Interval_Number, Avg_Steps, data = dInData)
+dev.off() ## close PNG file device
+print(mmValuesFinal)
+```
+
+```{r, echo = TRUE}
+## Calculate and report the total number of missing values
+print(sum(is.na(data$steps)))
+
+## Replace missing values with average value for the rest of the days
+newData <- data
+dInData2 <- cbind(dInData, unique(data$interval))
+for (i in 1:length(newData$steps)) {
+  if (is.na(newData$steps[i])) {
+    j <- newData$interval[i]
+    l <- filter(dInData2, unique(newData$interval)==j) 
+    newData$steps[i] <- l$Avg_Steps[1]
+  }
+}
+
+# what is the mean number of steps taken each day, with missing values corrected
+uniqueDates <- unique(newData$date)
+mmNewValues <- data.frame(NULL)
+for (i in 1:length(uniqueDates)) {
+  b <- filter(newData, date == uniqueDates[i])
+  #noZero <- filter(b, steps > 0)
+  c <- cbind(sum(b$steps), mean(b$steps), median(b$steps, na.rm = TRUE))
+  mmNewValues <- rbind(mmNewValues, c)
+}
+names(mmNewValues) <- c("Total_Steps", "Mean", "Median")
+print(mmNewValues)
+```
+
+```{r, echo = TRUE}
+## Make a histogram
+#plot
+png(file = "steps3.png") ## open PNG device, create plot in working directory
+qplot(steps, data = mmNewValues)
+dev.off() ## close PNG file device
+```
+
+```{r, echo = TRUE}
+## Now use weekday/weekend to determine changes in average daily steps
 
 ## What is the average daily activity pattern?
+unInterval <- unique(newData$interval)
+dInDataWKND <- data.frame(NULL)
+for (i in 1:length(unInterval)) {
+  f <- filter(newData, newData$interval == unInterval[i])
+  g <- mean(f$steps); h <- i
+  
+  k <- cbind(g, h, newData$interval[i], newData$date[i], weekdays(newData$date[i]))
+  dInDataWKND <- rbind(dInDataWKND, k)
+}
+names(dInDataWKND) <- c("Avg_Steps", "Interval_Number", "Interval", "Date", "Day")
+wkdys <- filter(dInDataWKND, Day == "Saturday" | Day == "Sunday")
+```
 
-
-
-## Imputing missing values
-
-
-
-## Are there differences in activity patterns between weekdays and weekends?
+```{r, echo = TRUE}
+#plot
+png(file = "steps2.png") ## open PNG device, create plot in working directory
+qplot(Interval_Number, Avg_Steps, data = dInData)
+dev.off() ## close PNG file device
+print(mmValuesFinal)
+```
